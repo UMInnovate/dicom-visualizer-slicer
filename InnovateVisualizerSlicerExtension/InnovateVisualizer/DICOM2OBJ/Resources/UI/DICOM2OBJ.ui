@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SegmentDicom</class>
- <widget class="qMRMLWidget" name="SegmentDicom">
+ <class>DICOM2OBJ</class>
+ <widget class="qMRMLWidget" name="DICOM2OBJ">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -139,7 +139,7 @@
       <bool>true</bool>
      </property>
      <property name="baseName">
-      <string>SegmentDicom</string>
+      <string>DICOM2OBJ</string>
      </property>
      <property name="renameEnabled">
       <bool>true</bool>
@@ -217,7 +217,7 @@
  <resources/>
  <connections>
   <connection>
-   <sender>SegmentDicom</sender>
+   <sender>DICOM2OBJ</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>inputSelector</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
@@ -233,7 +233,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>SegmentDicom</sender>
+   <sender>DICOM2OBJ</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>outputSelector</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
@@ -249,7 +249,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>SegmentDicom</sender>
+   <sender>DICOM2OBJ</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>parameterNodeSelector</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>

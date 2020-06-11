@@ -1,24 +1,21 @@
 import os
 import unittest
+import logging
 import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
-import logging
+from slicer.util import VTKObservationMixin
 
-#
-# SegmentDicom
-#
-
-class SegmentDicom(ScriptedLoadableModule):
+class DICOM2OBJ(ScriptedLoadableModule):
   """Uses ScriptedLoadableModule base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "SegmentDicom"
-    self.parent.categories = ["Examples"]
+    self.parent.title = "DICOM2OBJ"
+    self.parent.categories = ["Modules"]
     self.parent.dependencies = []
-    self.parent.contributors = ["John Doe (AnyWare Corp.)"]
+    self.parent.contributors = ["Andrew Gonzalez"]
     self.parent.helpText = """
 This is an example of scripted loadable module bundled in an extension.
 It performs a simple thresholding on the input volume and optionally captures a screenshot.
@@ -39,7 +36,6 @@ It performs a simple thresholding on the input volume and optionally captures a 
  
     # TODO create text box for input folder
     # Importing Dicom into temporary database
-    #dicomDataDir = "Z:/Dicom2Text/LumbarCTforMagicLeap"
     dicomDataDir = "C:/Users/Public/Pictures"
     from DICOMLib import DICOMUtils
     loadedNodeIDs = []
@@ -49,19 +45,6 @@ It performs a simple thresholding on the input volume and optionally captures a 
       patientUIDs = db.patients()
       for patientUID in patientUIDs:
         loadedNodeIDs.extend(DICOMUtils.loadPatientByUID(patientUID))
-    
-    # dicomDataDir = "Z:/Dicom2Text/LumbarCTforMagicLeap"
-    #DICOMUtils.importDicom(dicomDataDir)
-
-    # Load specific dicom given sop and series instance uids
-    #seriesInstanceUID = '2.16.840.1.114151.3.1.20566.9261759.7592.1584719071.211'
-    #sopInstanceUID = '2.16.840.1.114151.3.1.20566.9261759.7592.1584719071.212'
-    #DICOMUtils.loadSeriesByUID([seriesInstanceUID])
-
-    #seriesNodeIDs = DICOMUtils.loadSeriesByUID([seriesInstanceUID,])
-    #self.delayDisplay(seriesNodeIDs)
-    #seriesVolumeNode = slicer.util.getNode(seriesNodeIDs[0])
-	#storageNode.SetFileName(slicer.dicomDatabase.fileForInstance(sopInstanceUID))
 
 	# Loading Dicom into scene
     seriesVolumeNode = slicer.util.getNode(loadedNodeIDs[0])
@@ -72,10 +55,8 @@ It performs a simple thresholding on the input volume and optionally captures a 
     # Access segmentation module
     slicer.util.selectModule('Segment Editor')
     segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-    #segmentationNode = slicer.vtkMRMLSegmentationNode()
-    segmentationNode.CreateDefaultDisplayNodes()
+    segmentationNode.CreateDefaultDisplayNodes() # only needed for display
     segmentationNode.SetReferenceImageGeometryParameterFromVolumeNode(seriesVolumeNode)
-    #segmentTypeID = segmentationNode.GetSegmentation().AddEmptySegment("bone")
 
     # TODO Automate creation of different segments in the future
     # Create spine segment
@@ -85,12 +66,11 @@ It performs a simple thresholding on the input volume and optionally captures a 
     newSegment.SetColor([0.89, 0.85, 0.78])
     segmentationNode.GetSegmentation().AddSegment(newSegment,segmentTypeID)
 
-    # Create segment editor to get access to effects
+    # Create segment editor widget to get access to effects
     segmentEditorWidget = slicer.qMRMLSegmentEditorWidget()
     segmentEditorWidget.setMRMLScene(slicer.mrmlScene)
 
-    # Access segment editor
-    #segmentEditorNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentEditorNode")
+    # Access segment editor node
     segmentEditorNode = slicer.vtkMRMLSegmentEditorNode()
     slicer.mrmlScene.AddNode(segmentEditorNode)
     segmentEditorWidget.setMRMLSegmentEditorNode(segmentEditorNode)
@@ -99,30 +79,46 @@ It performs a simple thresholding on the input volume and optionally captures a 
 
     # Segment Editor Effect: Thresholding
     segmentEditorWidget.setActiveEffectByName("Threshold")
-    effect = segmentEditorWidget.activeEffect()
-    effect.setParameter("MinimumThreshold","100")
-    effect.setParameter("MaximumThreshold","1200")
-    effect.self().onApply()
+    thresholdEffect = segmentEditorWidget.activeEffect()
+    thresholdEffect.setParameter("MinimumThreshold","90")
+    thresholdEffect.self().onApply()
+    thresholdEffect.setParameter("MaximumThreshold","1600")
+    thresholdEffect.self().onApply()
+
+    # Create Closed Surface Representation
+    segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
+    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "0.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "0.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.00")
+    segmentationNode.CreateClosedSurfaceRepresentation()
 
     # Segment Editor Effect: Smoothing
-    #segmentEditorWidget.setActiveEffectByName("Smoothing")
-    #effect = segmentEditorWidget.activeEffect()
-    #effect.setParameter("SmoothingMethod", "MEDIAN")
-    #effect.setParameter("KernelSizeMm", 11)
-    #effect.self().onApply()
+    segmentEditorWidget.setActiveEffectByName("Smoothing")
+    smoothingEffect = segmentEditorWidget.activeEffect()
+    # 2mm OPEN Smoothing
+    #smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
+    #smoothingEffect.setParameter("KernelSizeMm", 2)
+    #smoothingEffect.self().onApply
+    # 1.5mm CLOSED Smoothing
+    #smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_CLOSING")
+    #smoothingEffect.setParameter("KernelSizeMm", 1.5)
+    #smoothingEffect.self().onApply
+    # 2mm MEDIAN Smoothing
+    smoothingEffect.setParameter("SmoothingMethod", "MEDIAN")
+    smoothingEffect.self().onApply
+    smoothingEffect.setParameter("KernelSizeMm", 2)
+    smoothingEffect.self().onApply
+
+    # Update Closed Surface Representation
+    segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
+    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "1.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "1.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.90")
+    segmentationNode.CreateClosedSurfaceRepresentation()
 
     # Clean up
     segmentEditorWidget = None
     slicer.mrmlScene.RemoveNode(segmentEditorNode)
-
-    # Make segmentation results visible in 3D
-    segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.8") 
-    segmentationNode.CreateClosedSurfaceRepresentation()
-
-    # Export segmentation to models module
-    #shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-    #exportFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Segments")
-    #slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, exportFolderItemId)
 
     # Send segment to output folder
     # TODO create text box for output folder
@@ -131,20 +127,8 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentIDs.InsertNextValue(segmentTypeID)
     slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False)
 
-    # Write to OBJ File NOT WORKING!!!
-    #surfaceMesh = segmentationNode.GetClosedSurfaceInternalRepresentation(segmentTypeID)
-    #writer = vtk.vtkOBJWriter
-    #writer.SetInputData(surfaceMesh)
-    #writer.SetFileName("Z:/Dicom2Text/DicomPrefabs/testspine1.obj")
-    #self.delayDisplay(writer)
-    #writer.Update()
-	
 
-#
-# SegmentDicomWidget
-#
-
-class SegmentDicomWidget(ScriptedLoadableModuleWidget):
+class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   """Uses ScriptedLoadableModuleWidget base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
@@ -167,11 +151,7 @@ class SegmentDicomWidget(ScriptedLoadableModuleWidget):
   def cleanup(self):
     pass
 
-#
-# SegmentDicomLogic
-#
-
-class SegmentDicomLogic(ScriptedLoadableModuleLogic):
+class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
   """This class should implement all the actual
   computation done by your module.  The interface
   should be such that other python code can import
@@ -181,8 +161,7 @@ class SegmentDicomLogic(ScriptedLoadableModuleLogic):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
-
-class SegmentDicomTest(ScriptedLoadableModuleTest):
+class DICOM2OBJTest(ScriptedLoadableModuleTest):
   """
   This is the test case for your scripted module.
   Uses ScriptedLoadableModuleTest base class, available at:
