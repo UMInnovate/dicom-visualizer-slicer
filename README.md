@@ -1,3 +1,9 @@
 # dicom-visualizer-slicer
 
-Currently, the file that needs to be modified should anything need to change about this extension is `slicer-extension/SegmentDicom/SegmentDicom/SegmentDicom/SegmentDicom.py`
+Slicer Extension Script Locations
+
+DICOM2OBJ Module
+`InnovateVisualizerSlicerExtension\InnovateVisualizer\DICOM2OBJ\DICOM2OBJ.py`
+
+STL2OBJ Module
+`InnovateVisualizerSlicerExtension\InnovateVisualizer\STL2OBJ\STL2OBJ.py`
