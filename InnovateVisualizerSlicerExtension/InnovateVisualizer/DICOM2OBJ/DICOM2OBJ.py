@@ -110,11 +110,9 @@ It performs a simple thresholding on the input volume and optionally captures a 
     smoothingEffect.self().onApply
 
     # Update Closed Surface Representation
-    segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
     segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "1.00")
     segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "1.00")
     segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.90")
-    segmentationNode.CreateClosedSurfaceRepresentation()
 
     # Clean up
     segmentEditorWidget = None

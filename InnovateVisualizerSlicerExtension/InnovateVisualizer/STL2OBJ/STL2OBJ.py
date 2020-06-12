@@ -22,7 +22,7 @@ It performs a simple thresholding on the input volume and optionally captures a 
 """
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = "acknowledgementText"
-    self.RunOnStartUp()
+    #self.RunOnStartUp()
     
   def RunOnStartUp(self):
     # Run module on startup of slicer
