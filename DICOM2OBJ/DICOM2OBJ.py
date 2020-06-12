@@ -81,49 +81,55 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentEditorWidget.setActiveEffectByName("Threshold")
     thresholdEffect = segmentEditorWidget.activeEffect()
     thresholdEffect.setParameter("MinimumThreshold","90")
-    thresholdEffect.self().onApply()
     thresholdEffect.setParameter("MaximumThreshold","1600")
     thresholdEffect.self().onApply()
 
-    # Create Closed Surface Representation
+    # Setting Closed Surface Representation Values
     segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
-    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "0.00")
-    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "0.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "1.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "1.00")
     segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.00")
-    segmentationNode.CreateClosedSurfaceRepresentation()
 
     # Segment Editor Effect: Smoothing
     segmentEditorWidget.setActiveEffectByName("Smoothing")
     smoothingEffect = segmentEditorWidget.activeEffect()
-    # 2mm OPEN Smoothing
-    #smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
-    #smoothingEffect.setParameter("KernelSizeMm", 2)
-    #smoothingEffect.self().onApply
-    # 1.5mm CLOSED Smoothing
-    #smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_CLOSING")
-    #smoothingEffect.setParameter("KernelSizeMm", 1.5)
-    #smoothingEffect.self().onApply
     # 2mm MEDIAN Smoothing
-    smoothingEffect.setParameter("SmoothingMethod", "MEDIAN")
+    #smoothingEffect.setParameter("SmoothingMethod", "MEDIAN")
+    #smoothingEffect.setParameter("KernelSizeMm", 2.5)
+    #smoothingEffect.self().onApply
+
+    # 2mm OPEN Smoothing
+    smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
     smoothingEffect.self().onApply
     smoothingEffect.setParameter("KernelSizeMm", 2)
     smoothingEffect.self().onApply
+    # 1.5mm CLOSED Smoothing
+    smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_CLOSING")
+    smoothingEffect.self().onApply
+    smoothingEffect.setParameter("KernelSizeMm", 1.5)
+    smoothingEffect.self().onApply
 
-    # Update Closed Surface Representation
-    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "1.00")
-    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "1.00")
-    segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.90")
+    # Create Closed Surface Representation
+    segmentationNode.CreateClosedSurfaceRepresentation()
 
     # Clean up
     segmentEditorWidget = None
     slicer.mrmlScene.RemoveNode(segmentEditorNode)
+
+    # Decimate Closed Surface Representation
+    decimate = vtkDecimatePro()
+    decimate.SetInputData(segmentationNode)
+    decimate.SetTargetReduction(.90)
+    decimate.Update()
 
     # Send segment to output folder
     # TODO create text box for output folder
     outputFolder = "Z:/GitHub/andrewxr.io"
     segmentIDs = vtk.vtkStringArray()
     segmentIDs.InsertNextValue(segmentTypeID)
-    slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False)
+    slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False) 
+
+    slicer.mrmlScene.RemoveNode(segmentationNode)
 
 
 class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
