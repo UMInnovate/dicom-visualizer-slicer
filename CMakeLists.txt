@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.13.4)
 
-project(InnovateVisualizer)
+project(InnovateVisualizerExtension)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/InnovateVisualizer")
+set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/InnovateVisualizerExtension")
 set(EXTENSION_CATEGORY "Modules")
-set(EXTENSION_CONTRIBUTORS "Andrew Gonzalez (University of Miami IT Innovate)")
-set(EXTENSION_DESCRIPTION "This is University of Miami's IT Innovate Visualizer for converting .dcm files into 3D Models in the form of a .obj. This extension also handles .stl to .obj conversion using slicers segmentation.")
-set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/InnovateVisualizer.png")
-set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/InnovateVisualizer/Screenshots/1.png")
+set(EXTENSION_CONTRIBUTORS "John Doe (AnyWare Corp.)")
+set(EXTENSION_DESCRIPTION "This is an example of a simple extension")
+set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/InnovateVisualizerExtension.png")
+set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/InnovateVisualizerExtension/Screenshots/1.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
