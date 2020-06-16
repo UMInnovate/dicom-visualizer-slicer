@@ -71,7 +71,7 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentEditorWidget.setMRMLScene(slicer.mrmlScene)
 
     # Access segment editor node
-    segmentEditorNode = slicer.vtkMRMLSegmentEditorNode()
+    segmentEditorNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentEditorNode")
     slicer.mrmlScene.AddNode(segmentEditorNode)
     segmentEditorWidget.setMRMLSegmentEditorNode(segmentEditorNode)
     segmentEditorWidget.setSegmentationNode(segmentationNode)
@@ -79,10 +79,10 @@ It performs a simple thresholding on the input volume and optionally captures a 
 
     # Segment Editor Effect: Thresholding
     segmentEditorWidget.setActiveEffectByName("Threshold")
-    thresholdEffect = segmentEditorWidget.activeEffect()
-    thresholdEffect.setParameter("MinimumThreshold","90")
-    thresholdEffect.setParameter("MaximumThreshold","1600")
-    thresholdEffect.self().onApply()
+    effect = segmentEditorWidget.activeEffect()
+    effect.setParameter("MinimumThreshold","90")
+    effect.setParameter("MaximumThreshold","1600")
+    effect.self().onApply()
 
     # Setting Closed Surface Representation Values
     segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
@@ -92,22 +92,20 @@ It performs a simple thresholding on the input volume and optionally captures a 
 
     # Segment Editor Effect: Smoothing
     segmentEditorWidget.setActiveEffectByName("Smoothing")
-    smoothingEffect = segmentEditorWidget.activeEffect()
+    effect = segmentEditorWidget.activeEffect()
     # 2mm MEDIAN Smoothing
-    #smoothingEffect.setParameter("SmoothingMethod", "MEDIAN")
-    #smoothingEffect.setParameter("KernelSizeMm", 2.5)
-    #smoothingEffect.self().onApply
+    effect.setParameter("SmoothingMethod", "MEDIAN")
+    effect.setParameter("KernelSizeMm", 2)
+    effect.self().onApply()
 
     # 2mm OPEN Smoothing
-    smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
-    smoothingEffect.self().onApply
-    smoothingEffect.setParameter("KernelSizeMm", 2)
-    smoothingEffect.self().onApply
+    #effect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
+    #effect.setParameter("KernelSizeMm", 2)
+    #effect.self().onApply
     # 1.5mm CLOSED Smoothing
-    smoothingEffect.setParameter("SmoothingMethod", "MORPHOLOGICAL_CLOSING")
-    smoothingEffect.self().onApply
-    smoothingEffect.setParameter("KernelSizeMm", 1.5)
-    smoothingEffect.self().onApply
+    #effect.setParameter("SmoothingMethod", "MORPHOLOGICAL_CLOSING")
+    #effect.setParameter("KernelSizeMm", 1.5)
+    #effect.self().onApply
 
     # Create Closed Surface Representation
     segmentationNode.CreateClosedSurfaceRepresentation()
@@ -116,20 +114,54 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentEditorWidget = None
     slicer.mrmlScene.RemoveNode(segmentEditorNode)
 
-    # Decimate Closed Surface Representation
-    decimate = vtkDecimatePro()
-    decimate.SetInputData(segmentationNode)
-    decimate.SetTargetReduction(.90)
-    decimate.Update()
+    # Export Segmentation to Model Node
+    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+    exportFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Segments")
+    slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, exportFolderItemId)
+
+    segmentID = segmentationNode.GetSegmentation().GetNthSegmentID(0)
+    surfaceMesh = segmentationNode.GetClosedSurfaceInternalRepresentation(segmentID)
+
+    # Decimate Model
+    decimator = vtk.vtkDecimatePro()
+    decimator.SplittingOff();
+    decimator.PreserveTopologyOn();
+    decimator.SetTargetReduction(0.9)
+    decimator.SetInputData(surfaceMesh)
+    decimator.Update()
+    surfaceMesh = decimator.GetOutput()
+
+    # Smooth the Model
+    smoother = vtk.vtkWindowedSincPolyDataFilter()
+    smoother.SetInputData(surfaceMesh);
+    smoother.SetNumberOfIterations(20);
+    smoother.SetPassBand(pow(10.0, -4.0 * 0.2));
+    smoother.BoundarySmoothingOff();
+    smoother.FeatureEdgeSmoothingOff();
+    smoother.NonManifoldSmoothingOn();
+    smoother.NormalizeCoordinatesOn();
+    smoother.Update();
+    surfaceMesh = smoother.GetOutput();
+
+    # Clean up Model
+    cleaner = vtk.vtkCleanPolyData()
+    cleaner.SetInputData(surfaceMesh)
+    cleaner.Update()
+    surfaceMesh = cleaner.GetOutput()
+
+    # Write to OBJ File
+    outputFileName = "Z:/GitHub/andrewxr.io/segmentation.obj"
+    writer = vtk.vtkOBJWriter()
+    writer.SetFileName(outputFileName)
+    writer.SetInputData(surfaceMesh)
+    writer.Update()
 
     # Send segment to output folder
     # TODO create text box for output folder
-    outputFolder = "Z:/GitHub/andrewxr.io"
-    segmentIDs = vtk.vtkStringArray()
-    segmentIDs.InsertNextValue(segmentTypeID)
-    slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False) 
-
-    slicer.mrmlScene.RemoveNode(segmentationNode)
+    #outputFolder = "Z:/GitHub/andrewxr.io"
+    #segmentIDs = vtk.vtkStringArray()
+    #segmentIDs.InsertNextValue(segmentTypeID)
+    #slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False)
 
 
 class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
