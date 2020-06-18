@@ -39,7 +39,7 @@ It performs a simple thresholding on the input volume and optionally captures a 
     dicomDataDir = "C:/Users/Public/Pictures"
     from DICOMLib import DICOMUtils
     loadedNodeIDs = []
-
+    
     with DICOMUtils.TemporaryDICOMDatabase() as db:
       DICOMUtils.importDicom(dicomDataDir, db)
       patientUIDs = db.patients()
@@ -48,16 +48,18 @@ It performs a simple thresholding on the input volume and optionally captures a 
 
 	# Loading Dicom into scene
     seriesVolumeNode = slicer.util.getNode(loadedNodeIDs[0])
-    storageNode = seriesVolumeNode.CreateDefaultStorageNode()
-    slicer.mrmlScene.AddNode(storageNode)
-    seriesVolumeNode.SetAndObserveStorageNodeID(storageNode.GetID())
+    storageVolumeNode = seriesVolumeNode.CreateDefaultStorageNode()
+    slicer.mrmlScene.AddNode(storageVolumeNode)
+    storageVolumeNode.UnRegister(slicer.mrmlScene)
+    seriesVolumeNode.SetAndObserveStorageNodeID(storageVolumeNode.GetID())
 
     # Access segmentation module
     slicer.util.selectModule('Segment Editor')
     segmentationNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+    slicer.mrmlScene.AddNode(segmentationNode)
     segmentationNode.CreateDefaultDisplayNodes() # only needed for display
     segmentationNode.SetReferenceImageGeometryParameterFromVolumeNode(seriesVolumeNode)
-
+    
     # TODO Automate creation of different segments in the future
     # Create spine segment
     segmentTypeID = "Spine"
@@ -110,10 +112,6 @@ It performs a simple thresholding on the input volume and optionally captures a 
     # Create Closed Surface Representation
     segmentationNode.CreateClosedSurfaceRepresentation()
 
-    # Clean up
-    segmentEditorWidget = None
-    slicer.mrmlScene.RemoveNode(segmentEditorNode)
-
     # Export Segmentation to Model Node
     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
     exportFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Segments")
@@ -124,24 +122,34 @@ It performs a simple thresholding on the input volume and optionally captures a 
 
     # Decimate Model
     decimator = vtk.vtkDecimatePro()
-    decimator.SplittingOff();
-    decimator.PreserveTopologyOn();
+    decimator.SplittingOff()
+    decimator.PreserveTopologyOn()
     decimator.SetTargetReduction(0.9)
     decimator.SetInputData(surfaceMesh)
     decimator.Update()
     surfaceMesh = decimator.GetOutput()
 
     # Smooth the Model
+    smoothingFactor = 0.3
     smoother = vtk.vtkWindowedSincPolyDataFilter()
-    smoother.SetInputData(surfaceMesh);
-    smoother.SetNumberOfIterations(20);
-    smoother.SetPassBand(pow(10.0, -4.0 * 0.2));
-    smoother.BoundarySmoothingOff();
-    smoother.FeatureEdgeSmoothingOff();
-    smoother.NonManifoldSmoothingOn();
-    smoother.NormalizeCoordinatesOn();
-    smoother.Update();
-    surfaceMesh = smoother.GetOutput();
+    smoother.SetInputData(surfaceMesh)
+    smoother.SetNumberOfIterations(20)
+    smoother.SetPassBand(pow(10.0, -4.0 * smoothingFactor))
+    smoother.BoundarySmoothingOff()
+    smoother.FeatureEdgeSmoothingOff()
+    smoother.NonManifoldSmoothingOn()
+    smoother.NormalizeCoordinatesOn()
+    smoother.Update()
+    surfaceMesh = smoother.GetOutput()
+
+    #cleaner = vtk.vtkCleanPolyData()
+    #cleaner.PointMergingOff()
+    #cleaner.ConvertLinesToPointsOn()
+    #cleaner.ConvertPolysToLinesOn()
+    #cleaner.ConvertStripsToPolysOn()
+    #cleaner.SetInputData(surfaceMesh)
+    #cleaner.Update()
+    #surfaceMesh = cleaner.GetOutput()
 
     # Clean up Model
     cleaner = vtk.vtkCleanPolyData()
@@ -155,6 +163,10 @@ It performs a simple thresholding on the input volume and optionally captures a 
     writer.SetFileName(outputFileName)
     writer.SetInputData(surfaceMesh)
     writer.Update()
+
+    # Clean up
+    segmentEditorWidget = None
+    slicer.mrmlScene.RemoveNode(segmentEditorNode)
 
     # Send segment to output folder
     # TODO create text box for output folder

@@ -43,6 +43,9 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentIDs.InsertNextValue(fileName)
     slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, stlSegmentationNode, segmentIDs, "OBJ", True, 1.0, False)
 
+    # Clean Up
+    stlSegmentationNode = None
+
 
 class STL2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   """Uses ScriptedLoadableModuleWidget base class, available at:
