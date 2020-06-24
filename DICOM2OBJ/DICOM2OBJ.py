@@ -1,6 +1,7 @@
 import os
 import unittest
 import logging
+import argparse
 import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin
@@ -22,21 +23,54 @@ It performs a simple thresholding on the input volume and optionally captures a 
 """
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = "acknowledgementText"
-    self.RunOnStartUp()
+    #self.RunOnStartUp()
     
-  def RunOnStartUp(self):
+  #def RunOnStartUp(self):
     # Run module on startup of slicer
-    slicer.app.connect("startupCompleted()", self.LoadSegment)
+    #slicer.app.connect("startupCompleted()", self.LoadSegment)
   
-  def LoadSegment(self):
+  #def LoadSegment(self):
     # Adding delay to allow other slicer modules to be instantiated
-    qt.QTimer.singleShot(100, self.ProceduralSegmentation)
+    #qt.QTimer.singleShot(100, self.ProceduralSegmentation)
 
-  def ProceduralSegmentation(self):
+
+class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+  """Uses ScriptedLoadableModuleWidget base class, available at:
+  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
+  """
+
+  def setup(self):
+    ScriptedLoadableModuleWidget.setup(self)
+
+    # Instantiate and connect widgets ...
+
+    #
+    # Parameters Area
+    #
+    parametersCollapsibleButton = ctk.ctkCollapsibleButton()
+    parametersCollapsibleButton.text = "Parameters"
+    self.layout.addWidget(parametersCollapsibleButton)
+
+    # Layout within the dummy collapsible button
+    parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+
+  def cleanup(self):
+    pass
+
+class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
+  """This class should implement all the actual
+  computation done by your module.  The interface
+  should be such that other python code can import
+  this class and make use of the functionality without
+  requiring an instance of the Widget.
+  Uses ScriptedLoadableModuleLogic base class, available at:
+  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
+  """
+
+  def ProceduralSegmentation(self, inputDir, outputDir):
  
-    # TODO create text box for input folder
     # Importing Dicom into temporary database
-    dicomDataDir = "C:/Users/Public/Pictures"
+    dicomDataDir = inputDir
     from DICOMLib import DICOMUtils
     loadedNodeIDs = []
     
@@ -60,7 +94,7 @@ It performs a simple thresholding on the input volume and optionally captures a 
     segmentationNode.CreateDefaultDisplayNodes() # only needed for display
     segmentationNode.SetReferenceImageGeometryParameterFromVolumeNode(seriesVolumeNode)
     
-    # TODO Automate creation of different segments in the future
+    # TODO Automate creation of different segments in the future (using some form of -type argument)
     # Create spine segment
     segmentTypeID = "Spine"
     newSegment = slicer.vtkSegment()
@@ -99,7 +133,6 @@ It performs a simple thresholding on the input volume and optionally captures a 
     effect.setParameter("SmoothingMethod", "MEDIAN")
     effect.setParameter("KernelSizeMm", 2)
     effect.self().onApply()
-
     # 2mm OPEN Smoothing
     #effect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
     #effect.setParameter("KernelSizeMm", 2)
@@ -142,23 +175,18 @@ It performs a simple thresholding on the input volume and optionally captures a 
     smoother.Update()
     surfaceMesh = smoother.GetOutput()
 
-    #cleaner = vtk.vtkCleanPolyData()
+    # Clean up Model
+    cleaner = vtk.vtkCleanPolyData()
     #cleaner.PointMergingOff()
     #cleaner.ConvertLinesToPointsOn()
     #cleaner.ConvertPolysToLinesOn()
     #cleaner.ConvertStripsToPolysOn()
-    #cleaner.SetInputData(surfaceMesh)
-    #cleaner.Update()
-    #surfaceMesh = cleaner.GetOutput()
-
-    # Clean up Model
-    cleaner = vtk.vtkCleanPolyData()
     cleaner.SetInputData(surfaceMesh)
     cleaner.Update()
     surfaceMesh = cleaner.GetOutput()
 
     # Write to OBJ File
-    outputFileName = "Z:/GitHub/andrewxr.io/segmentation.obj"
+    outputFileName = outputDir + "segmentation.obj"
     writer = vtk.vtkOBJWriter()
     writer.SetFileName(outputFileName)
     writer.SetInputData(surfaceMesh)
@@ -169,45 +197,33 @@ It performs a simple thresholding on the input volume and optionally captures a 
     slicer.mrmlScene.RemoveNode(segmentEditorNode)
 
     # Send segment to output folder
-    # TODO create text box for output folder
     #outputFolder = "Z:/GitHub/andrewxr.io"
     #segmentIDs = vtk.vtkStringArray()
     #segmentIDs.InsertNextValue(segmentTypeID)
     #slicer.vtkSlicerSegmentationsModuleLogic.ExportSegmentsClosedSurfaceRepresentationToFiles(outputFolder, segmentationNode, segmentIDs, "OBJ", True, 1.0, False)
 
+def main(argv):
+  try:
+    parser = argparse.ArgumentParser(description="InnovateVisualizer DICOM2OBJ Converter")
+    parser.add_argument("-i", "--input-folder", dest="input_folder", metavar="PATH", default="-", required=True, help="Folder of input DICOM files (can contain sub-folders)")
+    parser.add_argument("-o", "--output-folder", dest="output_folder", metavar="PATH", default=".", help="Folder to save obj data")
+    #parser.add_argument("-d","--copyDICOM",dest="copyDICOM",type=bool,default=False, help="Organize DICOM files in the output directory")
+    #parser.add_argument("-type", dest="type", type=string, default = "", help="Type of segmentation to take from .dcm data")
+    args = parser.parse_args(argv)
 
-class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
-  """Uses ScriptedLoadableModuleWidget base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
+    if args.input_folder == "-":
+      print('Please specify input DICOM study folder!')
+    if args.output_folder == ".":
+      print('Current directory is selected as output folder (default). To change it, please specify --output-folder')
 
-  def setup(self):
-    ScriptedLoadableModuleWidget.setup(self)
+    logic = DICOM2OBJLogic()
+    logic.ProceduralSegmentation(args.input_folder, args.output_folder)
+  except Exception as e:
+    print(e)
+  sys.exit()
 
-    # Instantiate and connect widgets ...
-
-    #
-    # Parameters Area
-    #
-    parametersCollapsibleButton = ctk.ctkCollapsibleButton()
-    parametersCollapsibleButton.text = "Parameters"
-    self.layout.addWidget(parametersCollapsibleButton)
-
-    # Layout within the dummy collapsible button
-    parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
-
-  def cleanup(self):
-    pass
-
-class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
-  """This class should implement all the actual
-  computation done by your module.  The interface
-  should be such that other python code can import
-  this class and make use of the functionality without
-  requiring an instance of the Widget.
-  Uses ScriptedLoadableModuleLogic base class, available at:
-  https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
-  """
+if __name__ == "__main__":
+  main(sys.argv[1:])
 
 class DICOM2OBJTest(ScriptedLoadableModuleTest):
   """
