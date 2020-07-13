@@ -21,6 +21,10 @@ include(${Slicer_USE_FILE})
 # Extension modules
 add_subdirectory(DICOM2OBJ)
 add_subdirectory(STL2OBJ)
+add_subdirectory(DICOM2OBJwithGUI)
+add_subdirectory(DICOMtoOBJ)
+add_subdirectory(GUI)
+add_subdirectory(DICOMtoOBJ2)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------

@@ -13,13 +13,12 @@ class DICOM2OBJ(ScriptedLoadableModule):
 
   def __init__(self, parent):
     ScriptedLoadableModule.__init__(self, parent)
-    self.parent.title = "DICOM2OBJ"
+    self.parent.title = "DICOM to OBJ converter"
     self.parent.categories = ["Modules"]
     self.parent.dependencies = []
-    self.parent.contributors = ["Andrew Gonzalez"]
+    self.parent.contributors = ["Andrew Gonzalez, Lenny Martinez"]
     self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
-It performs a simple thresholding on the input volume and optionally captures a screenshot.
+This script converts dicom images in a folder to an OBJ file and saves the .obj file in a specified folder.
 """
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = "acknowledgementText"
