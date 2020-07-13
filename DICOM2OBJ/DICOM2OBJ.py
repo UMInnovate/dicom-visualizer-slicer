@@ -70,6 +70,17 @@ class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     self.outputDirSelector.settingKey = 'outputDir'
     ioFormLayout.addRow("Output Directory:", self.outputDirSelector)
 
+    #
+    # Button for running code
+    #
+    runTransformButton = qt.QPushButton("Convert") 
+    runTransformButton.toolTip = "Takes dicom files in input directories, converts them to an obj model and saves them in output directory." 
+    ioFormLayout.addWidget(runTransformButton)
+    runTransformButton.connect('clicked(bool)', self.onrunTransformButtonClicked)
+
+    # Set local var as instance attribute
+    self.runTransformButton = runTransformButton
+
   def cleanup(self):
     pass
 
