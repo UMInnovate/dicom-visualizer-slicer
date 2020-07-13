@@ -39,19 +39,36 @@ class DICOM2OBJWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   """
 
   def setup(self):
+    # The following line lets us test the widget. Good idea to comment it out **once** we have things working
     ScriptedLoadableModuleWidget.setup(self)
+    
+    #
+    # Collapsible Button
+    #
+    ioCollapsible = ctk.ctkCollapsibleButton()
+    ioCollapsible.text = "Input and Output Selection"
+    self.layout.addWidget(ioCollapsible)
 
-    # Instantiate and connect widgets ...
+    # Layout within the collapsible button
+    ioFormLayout = qt.QFormLayout(ioCollapsible)
 
     #
-    # Parameters Area
+    # Input Directory
     #
-    parametersCollapsibleButton = ctk.ctkCollapsibleButton()
-    parametersCollapsibleButton.text = "Parameters"
-    self.layout.addWidget(parametersCollapsibleButton)
+    self.inputDirSelector = ctk.ctkPathLineEdit()
+    self.inputDirSelector.filters = ctk.ctkPathLineEdit.Dirs
+    self.inputDirSelector.options = ctk.ctkPathLineEdit.ShowDirsOnly
+    self.inputDirSelector.settingKey = 'inputDir'
+    ioFormLayout.addRow("Input Directory:", self.inputDirSelector)
 
-    # Layout within the dummy collapsible button
-    parametersFormLayout = qt.QFormLayout(parametersCollapsibleButton)
+    #
+    # Output Directory
+    #
+    self.outputDirSelector = ctk.ctkPathLineEdit()
+    self.outputDirSelector.filters = ctk.ctkPathLineEdit.Dirs
+    self.outputDirSelector.options = ctk.ctkPathLineEdit.ShowDirsOnly
+    self.outputDirSelector.settingKey = 'outputDir'
+    ioFormLayout.addRow("Output Directory:", self.outputDirSelector)
 
   def cleanup(self):
     pass
