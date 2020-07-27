@@ -121,17 +121,16 @@ class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
     effect.self().onApply()
 
     # Setting Closed Surface Representation Values
-    segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.5")
-    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "1.00")
-    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "1.00")
-    segmentationNode.GetSegmentation().SetConversionParameter("Decimation factor", "0.00")
+    segmentationNode.GetSegmentation().SetConversionParameter("Oversampling factor", "1.0")
+    segmentationNode.GetSegmentation().SetConversionParameter("Joint smoothing", "0.50")
+    segmentationNode.GetSegmentation().SetConversionParameter("Smoothing factor", "0.50")
 
     # Segment Editor Effect: Smoothing
     segmentEditorWidget.setActiveEffectByName("Smoothing")
     effect = segmentEditorWidget.activeEffect()
     # 2mm MEDIAN Smoothing
     effect.setParameter("SmoothingMethod", "MEDIAN")
-    effect.setParameter("KernelSizeMm", 2)
+    effect.setParameter("KernelSizeMm", 2.5)
     effect.self().onApply()
     # 2mm OPEN Smoothing
     #effect.setParameter("SmoothingMethod", "MORPHOLOGICAL_OPENING")
@@ -157,16 +156,16 @@ class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
     decimator = vtk.vtkDecimatePro()
     decimator.SplittingOff()
     decimator.PreserveTopologyOn()
-    decimator.SetTargetReduction(0.9)
+    decimator.SetTargetReduction(0.95)
     decimator.SetInputData(surfaceMesh)
     decimator.Update()
     surfaceMesh = decimator.GetOutput()
 
     # Smooth the Model
-    smoothingFactor = 0.3
+    smoothingFactor = 0.5
     smoother = vtk.vtkWindowedSincPolyDataFilter()
     smoother.SetInputData(surfaceMesh)
-    smoother.SetNumberOfIterations(20)
+    smoother.SetNumberOfIterations(50)
     smoother.SetPassBand(pow(10.0, -4.0 * smoothingFactor))
     smoother.BoundarySmoothingOff()
     smoother.FeatureEdgeSmoothingOff()
