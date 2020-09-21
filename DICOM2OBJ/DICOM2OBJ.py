@@ -67,7 +67,7 @@ class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
-  def ProceduralSegmentation(self, inputDir, outputDir):
+  def ProceduralSegmentation(self, inputDir, outputDir, min, max):
  
     # Importing Dicom into temporary database
     dicomDataDir = inputDir
@@ -116,8 +116,8 @@ class DICOM2OBJLogic(ScriptedLoadableModuleLogic):
     # Segment Editor Effect: Thresholding
     segmentEditorWidget.setActiveEffectByName("Threshold")
     effect = segmentEditorWidget.activeEffect()
-    effect.setParameter("MinimumThreshold","90")
-    effect.setParameter("MaximumThreshold","1600")
+    effect.setParameter("MinimumThreshold", str(min))
+    effect.setParameter("MaximumThreshold", str(max))
     effect.self().onApply()
 
     # Setting Closed Surface Representation Values
@@ -206,6 +206,8 @@ def main(argv):
     parser = argparse.ArgumentParser(description="InnovateVisualizer DICOM2OBJ Converter")
     parser.add_argument("-i", "--input-folder", dest="input_folder", metavar="PATH", default="-", required=True, help="Folder of input DICOM files (can contain sub-folders)")
     parser.add_argument("-o", "--output-folder", dest="output_folder", metavar="PATH", default=".", help="Folder to save obj data")
+    parser.add_argument("-n", "--min-threshold", dest="min_thresh", metavar="PATH", default="90", help="Minimum threshold")
+    parser.add_argument("-x", "--max-threshold", dest="max_thresh", metavar="PATH", default="1600", help="Maximum threshold")
     #parser.add_argument("-d","--copyDICOM",dest="copyDICOM",type=bool,default=False, help="Organize DICOM files in the output directory")
     #parser.add_argument("-type", dest="type", type=string, default = "", help="Type of segmentation to take from .dcm data")
     args = parser.parse_args(argv)
@@ -216,7 +218,7 @@ def main(argv):
       print('Current directory is selected as output folder (default). To change it, please specify --output-folder')
 
     logic = DICOM2OBJLogic()
-    logic.ProceduralSegmentation(args.input_folder, args.output_folder)
+    logic.ProceduralSegmentation(args.input_folder, args.output_folder, args.min_thresh, args.max_thresh)
   except Exception as e:
     print(e)
   sys.exit()
